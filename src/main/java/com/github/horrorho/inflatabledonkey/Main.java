@@ -45,6 +45,8 @@ import com.github.horrorho.inflatabledonkey.data.backup.Asset;
 import com.github.horrorho.inflatabledonkey.data.backup.Assets;
 import com.github.horrorho.inflatabledonkey.data.backup.Device;
 import com.github.horrorho.inflatabledonkey.data.backup.Snapshot;
+import com.github.horrorho.inflatabledonkey.requests.Headers;
+import com.github.horrorho.inflatabledonkey.requests.CoreHeaders;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,6 +63,8 @@ import java.util.function.Predicate;
 import static java.util.stream.Collectors.toList;
 import java.util.stream.Stream;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.CookieStore;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
@@ -125,12 +129,15 @@ public class Main {
                 .setSocketTimeout(timeoutMS)
                 .build();
 
+        CookieStore donkeyCookieStore = new BasicCookieStore();
+
         CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connManager)
                 .setDefaultRequestConfig(config)
+                .setDefaultCookieStore(donkeyCookieStore)
                 .setRedirectStrategy(new LaxRedirectStrategy())
                 .setRetryHandler(retryHandler)
-                .setUserAgent("CloudKit/479 (13A404)")
+                .setUserAgent(CoreHeaders.headers().get(Headers.USERAGENT).getValue())
                 .useSystemProperties()
                 .build();
 
@@ -158,6 +165,7 @@ public class Main {
         if (auth == null) {
             auth = Authenticator.authenticate(
                     httpClient,
+                    donkeyCookieStore,
                     Property.AUTHENTICATION_APPLEID.value().get(),
                     Property.AUTHENTICATION_PASSWORD.value().get());
         }

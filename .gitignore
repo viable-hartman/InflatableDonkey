@@ -16,3 +16,7 @@ hs_err_pid*
 /nb-configuration.xml
 /nbactions.xml
 /nbproject/
+
+# Ignore Saved Cookies
+AUTHCOOKIEJAR.json
+backups/

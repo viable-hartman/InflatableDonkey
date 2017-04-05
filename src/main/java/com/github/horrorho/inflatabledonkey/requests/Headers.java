@@ -57,7 +57,8 @@ public enum Headers {
     XCLOUDKITPROTOCOLVERSION("X-CloudKit-ProtocolVersion"),
     XCLOUDKITUSERID("X-CloudKit-UserId"),
     XCLOUDKITZONES("X-CloudKit-Zone"),
-    XMMECLIENTINFO("X-Mme-Client-Info");
+    XMMECLIENTINFO("X-Mme-Client-Info"),
+    ORIGIN("Origin");
 
     private final String name;
 

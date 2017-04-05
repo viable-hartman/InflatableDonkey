@@ -49,7 +49,10 @@ public final class CoreHeaders {
             XCLOUDKITENVIRONMENT.mapEntry(
                     "production"),
             XCLOUDKITPARTITION.mapEntry(
-                    "production"));
+                    "production"),
+            ORIGIN.mapEntry(
+                    "https://www.icloud.com")
+    );
 
     public static Map<Headers, Header> headers() {
         return new HashMap<>(HEADERS);

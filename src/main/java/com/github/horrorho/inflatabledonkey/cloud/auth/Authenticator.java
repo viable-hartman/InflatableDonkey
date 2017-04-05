@@ -26,17 +26,23 @@ package com.github.horrorho.inflatabledonkey.cloud.auth;
 import com.dd.plist.NSDictionary;
 import com.dd.plist.NSNumber;
 import com.dd.plist.NSString;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.horrorho.inflatabledonkey.requests.AuthenticationRequestFactory;
 import com.github.horrorho.inflatabledonkey.responsehandler.PropertyListResponseHandler;
+import com.github.horrorho.inflatabledonkey.responsehandler.JsonResponseHandler;
 import com.github.horrorho.inflatabledonkey.util.PListsLegacy;
+import com.github.horrorho.inflatabledonkey.util.CookieUtils;
+import java.util.List;
+import java.util.Scanner;
 import java.io.IOException;
 import net.jcip.annotations.Immutable;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 /**
  * Auth factory.
  *
@@ -47,17 +53,88 @@ public final class Authenticator {
 
     private static final Logger logger = LoggerFactory.getLogger(Authenticator.class);
 
-    public static Auth authenticate(HttpClient httpClient, String id, String password) throws IOException {
+    public static Auth authenticate(HttpClient httpClient, CookieStore donkeyCookieStore, String id, String password) throws IOException {
         logger.trace("<< authenticate() < id: {} password: {}", id, password);
 
         AuthenticationRequestFactory authenticationRequestFactory = AuthenticationRequestFactory.instance();
         PropertyListResponseHandler<NSDictionary> nsDictionaryResponseHandler
                 = PropertyListResponseHandler.dictionary();
 
+        if( CookieUtils.cookiesExist() ) {
+            // Load donkeyCookieStore so the request will pass it.
+            CookieUtils.loadCookies(donkeyCookieStore);
+
+            System.out.println("--- Cookies ---");
+            List<Cookie> cookies = donkeyCookieStore.getCookies();
+            for(Cookie c : cookies) {
+                System.out.println(c.getName() + " : " + c.getValue());
+            }
+            System.out.println("--- Cookies ---");
+        } else {
+            // If it doesn't let's check if we need Two-Factor Authentication at all..
+            try {
+                HttpUriRequest request2fa = authenticationRequestFactory.twoFactorRequest(id, password);
+    
+                JsonResponseHandler<JsonNode> jsonResponseHandler = new JsonResponseHandler<>(JsonNode.class);
+                JsonNode loginResp = httpClient.execute(request2fa, jsonResponseHandler);
+                ////System.out.println(loginResp.toString());
+                boolean requires2fa = false;
+                try {
+                    requires2fa = loginResp.get("hsaChallengeRequired").asBoolean();
+                } catch(java.lang.NullPointerException npe) {}
+
+                if(requires2fa) { // We need to send verification code and validate it since 2-Factor is required
+                    try { // Send a 2FA Code to iPhone
+                        HttpUriRequest request2favalid = authenticationRequestFactory.twoFactorCodeRequest();
+                        JsonNode codeResp = httpClient.execute(request2favalid, jsonResponseHandler);
+                        System.out.println("==========================================");
+                        System.out.println(codeResp.toString());
+                        System.out.println("==========================================");
+                    } catch (HttpResponseException ex) {
+                        System.out.println("Failed to send 2-Factor Code.");
+                        throw ex;
+                    }
+                    // Prompt user for 2FA Code already sent to device.
+                    Scanner input = new Scanner(System.in);
+                    System.out.print("Enter your two factor validation code:");
+                    String tfa_code = input.nextLine();
+                    //TODO: Need to do some validation, but this is just a test.
+                    /*
+                    try { // Try to verify the 2FA Code.
+                        HttpUriRequest request2favalid = authenticationRequestFactory.twoFactorValidationRequest(tfa_code);
+                        JsonNode validationResp = httpClient.execute(request2favalid, jsonResponseHandler);
+                        System.out.println("==========================================");
+                        System.out.println(validationResp.toString());
+                        System.out.println("==========================================");
+                        // From here, we need to save/serialize the auth cookies in httpClient so all further requests don't need to re-2fa-auth.
+                        List<Cookie> cookies = donkeyCookieStore.getCookies();
+                        if( !cookies.isEmpty() ) { // Serialize the cookies to json jobject.
+                            CookieUtils.saveCookies(cookies);
+                        }
+                    } catch (HttpResponseException ex) {
+                        System.out.println("2FA Code Validation Failed.");
+                        throw ex;
+                    }
+                    */
+                    // For now append 6 digit code to pass, as I still can't figure out the above way to authorize and get and mme token.
+                    password += tfa_code;  // This should authenticate and allow us to get an mme-token. 
+                }
+                //throw new IOException("------------- END 2FA TESTING -------------");
+    
+            } catch (HttpResponseException ex) {
+                throw ex;
+            } catch (java.net.URISyntaxException sex) {
+                System.exit(-1);
+            }
+        }
+
         try {
+        System.out.println("~~~ id: " + id + " password: " + password);
             HttpUriRequest request = authenticationRequestFactory.apply(id, password);
+        System.out.println("YaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYa");
             NSDictionary authentication = httpClient.execute(request, nsDictionaryResponseHandler);
             logger.debug("-- authenticate() - authentication: {}", authentication.toASCIIPropertyList());
+        System.out.println("YaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYa");
 
             NSDictionary appleAccountInfo = PListsLegacy.getAs(authentication, "appleAccountInfo", NSDictionary.class);
             String dsPrsID = PListsLegacy.getAs(appleAccountInfo, "dsPrsID", NSNumber.class).toString();
