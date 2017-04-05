@@ -86,21 +86,17 @@ public final class AuthenticationRequestFactory implements BiFunction<String, St
         uri.setParameter("clientBuildNumber", clientBuildNumber)
             .setParameter("clientId", clientId);
 
-        System.out.println("(((((((((--)))))))))" + uri.toString());
-
         HttpPost request = new HttpPost(uri.toString());
 
         // Generate JSON Auth Request.
         JSONObject jsonObj = new JSONObject();
-        jsonObj.put("phoneNumber", "********14");
-        jsonObj.put("deviceId", "1");
+        jsonObj.put("phoneNumber", "********14"); // TODO: Fix hard coded phone for testing
+        jsonObj.put("deviceId", "1");             // TODO: Fix hard coced device for testing
         jsonObj.put("areaCode", "");
         jsonObj.put("deviceType", "SMS");
         StringEntity entity = new StringEntity(jsonObj.toString(), "UTF-8");
         entity.setContentType("application/json");
 
-        System.out.println("Requesting Code...");
-        System.out.println(jsonObj.toString());
         // Set POST Request Body to JSON Auth
         request.setEntity(entity);
 
@@ -120,23 +116,19 @@ public final class AuthenticationRequestFactory implements BiFunction<String, St
         uri.setParameter("clientBuildNumber", clientBuildNumber)
             .setParameter("clientId", clientId);
 
-        System.out.println("+++++++++++++" + uri.toString());
-
         HttpPost request = new HttpPost(uri.toString());
 
         // Generate JSON Auth Request.
         JSONObject jsonObj = new JSONObject();
         jsonObj.put("verificationCode", code);
-        jsonObj.put("phoneNumber", "********14");
-        jsonObj.put("deviceId", "1");
+        jsonObj.put("phoneNumber", "********14"); // TODO: Fix hard coded phone for testing
+        jsonObj.put("deviceId", "1");             // TODO: Fix hard coced device for testing
         jsonObj.put("trustBrowser", true);
         jsonObj.put("areaCode", "");
         jsonObj.put("deviceType", "SMS");
         StringEntity entity = new StringEntity(jsonObj.toString(), "UTF-8");
         entity.setContentType("application/json");
 
-        System.out.println("Sending...");
-        System.out.println(jsonObj.toString());
         // Set POST Request Body to JSON Auth
         request.setEntity(entity);
 
@@ -155,8 +147,6 @@ public final class AuthenticationRequestFactory implements BiFunction<String, St
         URIBuilder uri = new URIBuilder(login_url);
         uri.setParameter("clientBuildNumber", clientBuildNumber)
             .setParameter("clientId", clientId);
-
-        System.out.println("-------------" + uri.toString());
 
         HttpPost request = new HttpPost(uri.toString());
 
@@ -187,7 +177,6 @@ public final class AuthenticationRequestFactory implements BiFunction<String, St
         request.setHeader(headers.get(Headers.USERAGENT));
         request.setHeader(headers.get(Headers.XMMECLIENTINFO));
         request.setHeader(HttpHeaders.AUTHORIZATION, authorization);
-        //request.setHeader("X-iCloud-HSA-Login", "");
 
         return request;
     }

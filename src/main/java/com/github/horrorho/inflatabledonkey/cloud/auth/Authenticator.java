@@ -63,13 +63,6 @@ public final class Authenticator {
         if( CookieUtils.cookiesExist() ) {
             // Load donkeyCookieStore so the request will pass it.
             CookieUtils.loadCookies(donkeyCookieStore);
-
-            System.out.println("--- Cookies ---");
-            List<Cookie> cookies = donkeyCookieStore.getCookies();
-            for(Cookie c : cookies) {
-                System.out.println(c.getName() + " : " + c.getValue());
-            }
-            System.out.println("--- Cookies ---");
         } else {
             // If it doesn't let's check if we need Two-Factor Authentication at all..
             try {
@@ -77,35 +70,30 @@ public final class Authenticator {
     
                 JsonResponseHandler<JsonNode> jsonResponseHandler = new JsonResponseHandler<>(JsonNode.class);
                 JsonNode loginResp = httpClient.execute(request2fa, jsonResponseHandler);
-                ////System.out.println(loginResp.toString());
                 boolean requires2fa = false;
                 try {
                     requires2fa = loginResp.get("hsaChallengeRequired").asBoolean();
                 } catch(java.lang.NullPointerException npe) {}
 
                 if(requires2fa) { // We need to send verification code and validate it since 2-Factor is required
+                    /* This works, but for some reason SMS authorization code doesn't work when appended to password.
                     try { // Send a 2FA Code to iPhone
                         HttpUriRequest request2favalid = authenticationRequestFactory.twoFactorCodeRequest();
                         JsonNode codeResp = httpClient.execute(request2favalid, jsonResponseHandler);
-                        System.out.println("==========================================");
-                        System.out.println(codeResp.toString());
-                        System.out.println("==========================================");
                     } catch (HttpResponseException ex) {
                         System.out.println("Failed to send 2-Factor Code.");
                         throw ex;
                     }
-                    // Prompt user for 2FA Code already sent to device.
+                    */
+                    // Prompt user for 2FA Code. Its the one that pops up on your phone via Wi-Fi
                     Scanner input = new Scanner(System.in);
                     System.out.print("Enter your two factor validation code:");
                     String tfa_code = input.nextLine();
-                    //TODO: Need to do some validation, but this is just a test.
-                    /*
+                    //TODO: Should do some validation of tfa_code, but this works for now.
+                    /* This will successfully verify the 2FA SMS code, but don't get an mme Token from this.
                     try { // Try to verify the 2FA Code.
                         HttpUriRequest request2favalid = authenticationRequestFactory.twoFactorValidationRequest(tfa_code);
                         JsonNode validationResp = httpClient.execute(request2favalid, jsonResponseHandler);
-                        System.out.println("==========================================");
-                        System.out.println(validationResp.toString());
-                        System.out.println("==========================================");
                         // From here, we need to save/serialize the auth cookies in httpClient so all further requests don't need to re-2fa-auth.
                         List<Cookie> cookies = donkeyCookieStore.getCookies();
                         if( !cookies.isEmpty() ) { // Serialize the cookies to json jobject.
@@ -116,11 +104,11 @@ public final class Authenticator {
                         throw ex;
                     }
                     */
-                    // For now append 6 digit code to pass, as I still can't figure out the above way to authorize and get and mme token.
-                    password += tfa_code;  // This should authenticate and allow us to get an mme-token. 
+
+                    // For now append 6 digit code to pass
+                    // I'm still working on how to get mme from SMS authorization and cookies above.
+                    password += tfa_code;  // This will authenticate and allow us to get an mme-token. 
                 }
-                //throw new IOException("------------- END 2FA TESTING -------------");
-    
             } catch (HttpResponseException ex) {
                 throw ex;
             } catch (java.net.URISyntaxException sex) {
@@ -129,12 +117,9 @@ public final class Authenticator {
         }
 
         try {
-        System.out.println("~~~ id: " + id + " password: " + password);
             HttpUriRequest request = authenticationRequestFactory.apply(id, password);
-        System.out.println("YaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYa");
             NSDictionary authentication = httpClient.execute(request, nsDictionaryResponseHandler);
             logger.debug("-- authenticate() - authentication: {}", authentication.toASCIIPropertyList());
-        System.out.println("YaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYaYa");
 
             NSDictionary appleAccountInfo = PListsLegacy.getAs(authentication, "appleAccountInfo", NSDictionary.class);
             String dsPrsID = PListsLegacy.getAs(appleAccountInfo, "dsPrsID", NSNumber.class).toString();

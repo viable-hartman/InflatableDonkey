@@ -111,9 +111,9 @@ public final class CookieUtils {
         JSONArray cookieArr = new JSONArray();
         for (Cookie c : cookies) {
             JSONObject cj = new JSONObject();
-            //if (!c.isPersistent()) {
-            //    continue;
-            //}
+            if (!c.isPersistent()) {
+                continue;
+            }
             cj.put("domain", c.getDomain());
             cj.put("path", c.getPath());
             cj.put("name", c.getName());

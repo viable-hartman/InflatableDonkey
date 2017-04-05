@@ -56,15 +56,6 @@ public abstract class DonkeyResponseHandler<T> implements ResponseHandler<T> {
         StatusLine statusLine = response.getStatusLine();
         HttpEntity entity = response.getEntity();
 
-        /////
-        System.out.println("10000000000000000000000000000000000000001");
-        Header[] headers = response.getAllHeaders();
-        for (Header header : headers) {
-            System.out.println("Key : " + header.getName() + " ,Value : " + header.getValue());
-        }
-        System.out.println("10000000000000000000000000000000000000001");
-        /////
-
         if (statusLine.getStatusCode() >= 300) {
             String message = statusLine.getReasonPhrase();
             if (entity != null) {
